@@ -1,0 +1,37 @@
+# Crobagotchi ideas list
+
+phyiscal tomagotchi type device where you can feed, pet, play with crobs
+
+crobs have attributes:
+
+a name - randomly selected from a list?
+health - feeding the crob in the last 24 hours is 75%,
+        feeding the crob consistently in the past 3 days is 25% (this might be hard to do)
+happy - play with the crob 2x / 24 hours, degrades at a linear rate
+        OR pet crob, does the same
+        OR network with another crob, instant 100, and degrade will cool down
+
+crobs eet potatoes
+pet the crob and hearts appear
+pet the crob and a hand appears
+
+can network with nearby crobs to create a MURDER
+
+uses a ssd1306 display
+esp32 with networking (networking would be really cool, but also really hard?)
+the esp32 would have a lot of flash which would make my job easier...
+have a physical power switch for the esp32, for maximum power savings
+// real time clock that is always powered for save data
+so the esp32 has a RTC module
+if we are powering it just off of a coin cell, might be fine
+
+probably just use AAs, see if I can get a small connector that can go on the back without being too
+big?
+
+if the batteries die, might want to see if I can keep the save data stored in the flash
+so that we can swap batteries without killing crobs
+
+
+couple of buttons to navigate menus and interact
+maybe - a piezo for CAWing
+
