@@ -31,6 +31,7 @@ volatile bool timerInterrupt = false;
 volatile bool pinInterrupt = false;
 volatile bool watchdogInterrupt = false;
 
+// this actually counts every 8 seconds
 volatile uint64_t interaction_seconds_counter = 0;
 
 void setup()
@@ -192,7 +193,7 @@ void deepSleep()
   // watchdog timer
   wdt_reset();
   MCUSR = 0;
-  WDTCR = _BV(WDCE) | _BV(WDE) | _BV(WDIE) | _BV(WDP2) | _BV(WDP1);
+  WDTCR = _BV(WDCE) | _BV(WDE) | _BV(WDIE) | _BV(WDP3) | _BV(WDP0);
 
   wdt_reset();
   
@@ -360,6 +361,8 @@ void loop()
   if (timerInterrupt)
   {
       updateSleepTime();
+
+      return;
 
         // ssd1306_128x64_i2c_init();
         ssd1306_displayOn();
