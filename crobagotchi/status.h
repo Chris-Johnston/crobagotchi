@@ -1,5 +1,4 @@
 #pragma once
-#include <string>
 // #include <limits> I dont need to include this just for a 255 const
 
 // this is either the simulator, or the real hardware

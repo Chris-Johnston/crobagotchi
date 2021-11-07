@@ -1,0 +1,6 @@
+{
+    "board": "attiny:avr:ATtinyX5",
+    "configuration": "cpu=attiny85,clock=internal16",
+    "sketch": "crobagotchi/crobagotchi.ino",
+    "port": "/dev/ttyS4"
+}

@@ -13,7 +13,7 @@ class CrobGame
         void StartNewGame();
 
         // loads from the GameInterface the current save data
-        void LoadData();
+        bool LoadData();
 
         // saves the current state to the GameInterface
         void SaveData();
