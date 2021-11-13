@@ -227,7 +227,7 @@ void deepSleep()
 
 ISR(WDT_vect)
 {
-    wdt_disable();
+    wdt_reset();
     watchdogInterrupt = true;
     timerInterrupt = true;
     interaction_seconds_counter++;
@@ -242,6 +242,7 @@ ISR(WDT_vect)
 
 ISR(PCINT0_vect)
 {
+    wdt_reset();
     // timerInterrupt = false;
     pinInterrupt = true;
     // cli();
@@ -276,7 +277,7 @@ ISR(PCINT0_vect)
 void splashScreen()
 {
   ssd1306_drawBitmap(0, 0, 128, 64, epd_bitmap_leg_dithered);
-  delay(100);
+  delay(1000);
 }
 
 void dumpStatus()
@@ -297,7 +298,7 @@ void sleepTime()
 
     ssd1306_clearScreen();
     char buf[32] = {0};
-    sprintf(buf, "Sleeping: %d", slept);
+    sprintf(buf, "Sleeping: %d", interaction_seconds_counter);
     ssd1306_printFixed(0, 8, buf, STYLE_NORMAL);
 }
 
@@ -355,14 +356,14 @@ void loop()
         ssd1306_printFixed(0, 8, "waking up", STYLE_NORMAL);
       ssd1306_printFixed(0, 16, "PIN INTERRUPT", STYLE_NORMAL);
       sleepTime();
-      delay(150000);
+      delay(1500);
   }
 
   if (timerInterrupt)
   {
       updateSleepTime();
 
-      return;
+      // return;
 
         // ssd1306_128x64_i2c_init();
         ssd1306_displayOn();
