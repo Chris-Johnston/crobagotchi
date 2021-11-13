@@ -1,3 +1,4 @@
 (fp_lib_table
   (lib (name ssd1306)(type KiCad)(uri /home/chris/Git/KiCad-SSD1306-128x64/library/SSD1306.pretty)(options "")(descr ""))
+  (lib (name crow)(type KiCad)(uri /home/chris/Git/crobagotchi/pcb)(options "")(descr ""))
 )
