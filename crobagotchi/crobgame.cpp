@@ -2,6 +2,7 @@
 #include "crob.h"
 #include "Arduino.h"
 #include <EEPROM.h>
+#include "names.h"
 
 // put these in different files when I'm dead
 void CrobGame::StartNewGame()
@@ -58,7 +59,15 @@ CrobGame::CrobGame()
 Crob::Crob()
 {
     // char n[32] = "name";
-    // this->name = n;
+    this->name;
+    memset(this->name, 0, 32);
+    strcpy(this->name, get_name());
+
+// #define NAME_OVERRIDE "crobby boi"
+#ifdef NAME_OVERRIDE
+    strcpy(this->name, "crobby boi");
+#endif
+
     this->health = 0;
     this->happy = 0;
     this->age = 0;

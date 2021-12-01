@@ -8,276 +8,177 @@
 #include "sprites.h"
 
 #include "EEPROM.h"
-
-// #include <Wire.h>
-
-
-// #define SDA 0
-// #define SCL 2
-
-// tinywire library has some neat features
-// but is glitchy for me
-// #include <TinyWireM.h>
-// #include <Tiny4kOLED_bitbang.h>
-// #include <Tiny4kOLED.h>
-
 #include <avr/io.h>
 #include <avr/sleep.h>
 #include <avr/wdt.h>
 
-
 CrobGame game;
-volatile bool timerInterrupt = false;
+
+// #define DEBUG_WD
+// #define DEBUG_SCREEN
+// #define DEBUG_LED
+
+// interrupt flags
+// these are technically redundant
 volatile bool pinInterrupt = false;
 volatile bool watchdogInterrupt = false;
 
+bool firstBoot = false;
+
 // this actually counts every 8 seconds
+// configured to use the 16mhz internal clock but I think the watchdog timer doesn't care
 volatile uint64_t interaction_seconds_counter = 0;
 
-void setup()
+void enableScreen()
 {
-    ssd1306_128x64_i2c_init();
-  ssd1306_setContrast(255);
-  ssd1306_setFixedFont(ssd1306xled_font6x8);
-  // ssd1306_clearScreen();
-
-  splashScreen();
-
-//   ssd1306_sendData(0xD5);
-//   ssd1306_sendData(0xf0);
-  
-  // ssd1306_printFixed(0, 24, "WATCH DOG", STYLE_NORMAL);
-  
-  
-
-
-  GIMSK = 0;
-  PCMSK = 0;
-  cli();
-
-  // we do not use ADC ever... unless I want low voltage detection?
-  ADCSRA = 0;
-
-  if (MCUSR & _BV(WDRF))
-  {
-      ssd1306_128x64_i2c_init();
-  ssd1306_setContrast(255);
-  ssd1306_setFixedFont(ssd1306xled_font6x8);
-  ssd1306_clearScreen();
-  ssd1306_printFixed(0, 24, "WATCH DOG", STYLE_NORMAL);
-
-
-      MCUSR = 0;
-      updateSleepTime();
-
-      delay(180000);
-  }
-
-  if (timerInterrupt)
-  {
-       updateSleepTime();
-       return;
-  }
-  else
-  {
-      EEPROM.write(100, 0);
-  }
-  
-
-  // this init will only be necessary for pin interrupts, timer interrupts will skip most of this
   ssd1306_128x64_i2c_init();
-  ssd1306_setContrast(255);
-  ssd1306_setFixedFont(ssd1306xled_font6x8);
-  ssd1306_clearScreen();
-
-//   if (pinInterrupt || timerInterrupt)
-//   {
-//       splashScreen();
-//   }
-
-  if (pinInterrupt)
-  {
-      sleepTime();
-      delay(50000);
-  }
-
-    watchdogInterrupt = false;
-  timerInterrupt = false;
-  pinInterrupt = false;
-
-  // TinyWireM.begin();
-
-//   // oled.begin();
-//   oled.begin(128, 64, sizeof(tiny4koled_init_128x64br), tiny4koled_init_128x64br);
-//   // oled.begin(128, 64, sizeof(tiny4koled_init_128x64b), tiny4koled_init_128x64b);
-//   oled.setFont(FONT6X8);
-//   oled.invertOutput(false);
-//   oled.setInternalIref(true);
-//   oled.setContrast(255);
-//   oled.clearToEOL();
-//   oled.clear();
-//   oled.bitmap(0, 0, 128, 64, epd_bitmap_leg_dithered);
-
-//   oled.switchFrame();
-//   oled.clear();
-
-//   oled.fill(0);
-
-  // oled.blink(200);
-  // oled.on();
-  // oled.setInternalIref(true);
-  // oled.on();
-  // oled.switchFrame();
-//   oled.setEntireDisplayOn(true);
-//     oled.on();
-
-//   while (true)
-//   {
-//     oled.clear();
-
-//      oled.setCursor(0, 1);
-//      oled.print(F("ms: "));
-//      oled.print(millis());
-//     // oled.on();
-
-//     // oled.clear();
-//     oled.switchFrame();
-//     // oled.bitmap(0, 0, 128, 64, epd_bitmap_leg_dithered);
-
-//     // delay(1000);
-//     // delay(100);
-//     // oled.on();
-//     delay(100);
-//     // oled.off();
-//   }
-
-  pinMode(1, INPUT_PULLUP);
-  pinMode(2, INPUT_PULLUP); // pb2 pb1
-
-
-  ssd1306_printFixed(0, 8, "getting data", STYLE_NORMAL);
-  initData();
-  delay(1000);
-  dumpStatus();
-  delay(50000);
-
-  splashScreen();
-}
-
-
-
-void deepSleep()
-{
+  ssd1306_setContrast(250);
   ssd1306_normalMode();
   ssd1306_clearScreen();
-  // ssd1306_displayOff();
-  ssd1306_setContrast(255); // set a timer to reduce contrast over time
-
-  cli();
-  // sei();
-  set_sleep_mode(SLEEP_MODE_PWR_DOWN);
-  // set_sleep_mode(SLEEP_MODE_IDLE);
-  // set_sleep_mode(SLEEP_MODE_PWR_DOWN);
-  
-  sleep_enable();
-
-  noInterrupts();
-
-  // enable pin change interrupts
-  // GIMSK = 0b100000;
-  GIMSK |= (1 << PCIE);
-  PCMSK |= (1 << PCINT2);
-  PCMSK |= (1 << PCINT1);
-  // PCMSK = 0b110;
-
-  // watchdog timer
-  wdt_reset();
-  MCUSR = 0;
-  WDTCR = _BV(WDCE) | _BV(WDE) | _BV(WDIE) | _BV(WDP3) | _BV(WDP0);
-
-  wdt_reset();
-  
-
-// TIMER
-// TCCR1 = 0;
-// TCNT1 = 0;
-// GTCCR = _BV(PSR1);
-//   // enable timer interrupts
-//   TCCR1 |= (1 << CTC1);
-//   // https://embeddedthoughts.com/2016/06/06/attiny85-introduction-to-pin-change-and-timer-interrupts/
-//   // TCCR1 |= (1 << CS13) | (1 << CS12) | (1 << CS11);
-
-//   // http://www.arduinoslovakia.eu/application/timer-calculator
-//   OCR1C = 243;
-//   OCR1A = OCR1C;
-//   TCCR1 |= (1 << CS13) | (1 << CS12) | (1 << CS11) | (1 << CS10);
-//   // TCCR1 = _BV(CTC1) | _BV(CS13) | _BV(CS12) | _BV(CS11) | _BV(CS10);
-//   // TCCR1 = _BV(CS01) ;
-//   TIMSK |= (1 << OCIE1A);
-
-    sei();
-  interrupts();
-
-  sleep_cpu(); // this shuts down more fully??
-  // sleep_cpu();
-  // sleep_mode();
-
-  cli();
+  ssd1306_setFixedFont(ssd1306xled_font6x8);
 }
 
 ISR(WDT_vect)
 {
     wdt_reset();
     watchdogInterrupt = true;
-    timerInterrupt = true;
     interaction_seconds_counter++;
 }
-
-// ISR(TIMER1_COMPA_vect)
-// {
-//     timerInterrupt = true;
-//     interaction_seconds_counter++;
-//     // pinInterrupt = false;
-// }
 
 ISR(PCINT0_vect)
 {
     wdt_reset();
-    // timerInterrupt = false;
     pinInterrupt = true;
-    // cli();
 }
 
-// ISR(PCINT1_vect)
-// {
-//     timerInterrupt = false;
-//     pinInterrupt = true;
-//     // cli();
-// }
+void handle_watchdog_interrupt()
+{
+  if (MCUSR & _BV(WDRF))  // MCU Status Register, Watchdog Reset Flag
+  {
+#ifdef DEBUG_WD
+      ssd1306_128x64_i2c_init();
+      // question: does changing contrast impact the power draw?
+      ssd1306_setContrast(255);
+      ssd1306_setFixedFont(ssd1306xled_font6x8);
+      ssd1306_clearScreen();
+      ssd1306_printFixed(0, 24, "WATCH DOG", STYLE_NORMAL);
+#endif
+      MCUSR = 0;
+  }
+}
 
-// ISR(PCINT2_vect)
-// {
-//     timerInterrupt = false;
-//     pinInterrupt = true;
-//     // cli();
-// }
+void setup()
+{
+  cli();
+  // CLKPR = 0; // disable clock pre scalar
+  // CLKPR = (1 << CLKPCE);
+  // CLKPR = 0b0000;
+  sei();
 
+  #ifdef DEBUG_LED
+  pinMode(0, OUTPUT);
+  digitalWrite(0, 1);
+  delay(1);
+  digitalWrite(0, LOW);
+  delay(50);
+  #endif
+  // clear interrupts
+  GIMSK = 0; // General Interrupt Mask Register
+  PCMSK = 0; // Pin Change Mask Register
+  noInterrupts();
+  handle_watchdog_interrupt();
 
+  // we do not use ADC ever
+  ADCSRA = 0; // ADC Control Status Register A (reg B does not have an enable bit)
+  pinMode(1, INPUT_PULLUP);
+  pinMode(2, INPUT_PULLUP); // pb2 pb1
 
-// ISR(PCINT1_vect)
-// {
-//     isPinChange = true;
-// }
+  if (watchdogInterrupt) // watchdog interrupt will reset
+  {
+    #ifdef DEBUG_LED
+      digitalWrite(0, 1);
+      delay(5);
+      digitalWrite(0, LOW);
+      delay(1000);digitalWrite(0, 1);
+      delay(5);
+      digitalWrite(0, LOW);
+      delay(1000);
+    #endif
+    deepSleep();
+  }
 
-// ISR(PCINT2_vect)
-// {
-//     isPinChange = true;
-// }
+  pinInterrupt = false;
+  watchdogInterrupt = false;
+  interaction_seconds_counter = 0;
+
+enableScreen();
+#ifdef DEBUG_SCREEN
+  splashScreen();
+  ssd1306_printFixed(0, 16, "fresh reboot", STYLE_NORMAL);
+  delay(1000);
+#endif
+  initData();
+  firstBoot = true;
+}
+
+void screen_off()
+{
+  ssd1306_normalMode();
+  ssd1306_clearScreen();
+  ssd1306_displayOff();
+  ssd1306_setContrast(255); // set a timer to reduce contrast over time
+}
+
+// configures interrupt handlers, shuts off the display, and goes into deep sleep
+void deepSleep()
+{
+#ifdef DEBUG_LED
+  digitalWrite(0, 0);
+#endif
+
+  set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+  sleep_enable();
+
+  noInterrupts();
+
+  // enable pin change interrupts
+  GIMSK |= (1 << PCIE);
+  PCMSK |= (1 << PCINT2);
+  PCMSK |= (1 << PCINT1);
+  
+  // watchdog timer
+  wdt_reset(); // probably have some redundant calls in here
+  MCUSR = 0;
+  WDTCR = _BV(WDCE) | _BV(WDE) | _BV(WDIE) | _BV(WDP3) | _BV(WDP0); // 8 sec
+
+  wdt_reset();
+  interrupts();
+
+  // sleeps here
+  sleep_cpu();
+}
 
 void splashScreen()
 {
-  ssd1306_drawBitmap(0, 0, 128, 64, epd_bitmap_leg_dithered);
+  ssd1306_clearScreen();
+  // return;
+
+  for (int i = 0; i < 36; i += 6)
+  {
+    ssd1306_clearScreen();
+    ssd1306_printFixed(30, i, "CROBAGOTCHI", STYLE_NORMAL);
+    delay(200);
+  }
+  ssd1306_printFixed(30, 48, "Ding!", STYLE_NORMAL);
+
   delay(1000);
+
+  #ifdef DEBUG_SCREEN
+    char buf[32] = {0};
+    sprintf(buf, "CLKPR %d", CLKPR);
+    ssd1306_printFixed(0, 8, buf, STYLE_NORMAL);
+    delay(1000);
+  #endif
 }
 
 void dumpStatus()
@@ -292,101 +193,163 @@ void dumpStatus()
     delay(30000);
 }
 
-void sleepTime()
-{
-    auto slept = EEPROM.read(100);
-
-    ssd1306_clearScreen();
-    char buf[32] = {0};
-    sprintf(buf, "Sleeping: %d", interaction_seconds_counter);
-    ssd1306_printFixed(0, 8, buf, STYLE_NORMAL);
-}
-
-void updateSleepTime()
-{
-    auto slept = EEPROM.read(100);
-    slept += 1;
-    if (slept == 255)
-    {
-        slept = 0;
-    }
-    EEPROM.write(100, slept);
-}
-
 // init from eeprom, this will resume stored status
 void initData()
 {
+  #ifdef DEBUG_SCREEN
+    ssd1306_printFixed(0, 8, "getting data", STYLE_NORMAL);
+    delay(1000);
+#endif
   auto freshData = game.LoadData();
+
+  freshData = true;
 
   if (!freshData)
   {
+#ifdef DEBUG_SCREEN
     ssd1306_printFixed(0, 8, "init new data", STYLE_NORMAL);
+    delay(1000);
+#endif
 
     game.StartNewGame();
+    game.SaveData();
   }
   else
   {
+    #ifdef DEBUG_SCREEN
     ssd1306_printFixed(0, 8, "using old data", STYLE_NORMAL);
+    delay(1000);
+    #endif
   }
-
 }
 
+void on_resume()
+{
+  if (interaction_seconds_counter > 0)
+  {
+    // decay by counter * 8
+#ifdef DEBUG_SCREEN
+    char buf[32] = {0};
+    sprintf(buf, "Off Time: %d", interaction_seconds_counter);
+    ssd1306_printFixed(0, 32, buf, STYLE_NORMAL);
+    delay(5000);
+#endif
+  }
+}
+
+void game_loop() // naming consistency, what's that?
+{
+  // draw status on display
+  draw_status();
+  
+  delay(1000);
+
+  // await button presses (might need to be smart and use interrupts instead of polling, not sure?)
+
+  // dumpStatus();
+#ifdef DEBUG_SCREEN
+  ssd1306_printFixed(0, 16, "game LOOP", STYLE_NORMAL);
+#endif
+  delay(1000);
+}
+
+void draw_status()
+{
+  ssd1306_clearScreen();
+
+  // 8 px at the top is for the name and age
+  char buf[128 / 5] = {0};
+  sprintf(buf, "%s - Age %d", game.crob.name, 123);
+  ssd1306_printFixed(0, 0, buf, STYLE_NORMAL);
+
+  // auto pet = ssd1306_createSprite(40, 48, 48, epd_bitmap_test);
+
+  // 4 px margin
+
+  // leaves a 40 px square in the center for the status
+  // 128 / 2 = 64
+  // 64 - 24 = 40 px from the side
+  // nevermind bitmaps have to be multiples of 8
+  // ssd1306_drawBitmap(40, 8 / 8, 48, 48, epd_bitmap_test);
+
+// delay(1000);
+  ssd1306_clearScreen();
+  drawBitMapIntScale(40, 8 / 8, 2, 24, 24, crow_24px);
+
+  // 4 px margin
+
+  // 8 px at the bottom is for the status indicator
+  sprintf(buf, "HUNGRY, DIRTY");
+  ssd1306_printFixed(8, 56, buf, STYLE_NORMAL);
+
+  delay(3000);
+
+  draw_menu();
+}
+
+void drawBitMapIntScale(int x, int y, int scale, int w, int h, const uint8_t *buf)
+{
+  // ssd1306_write
+
+  // uint8_t i, j;
+  //   uint8_t remainder = (ssd1306_lcd.width - x) < w ? (w + x - ssd1306_lcd.width): 0;
+  //   w -= remainder;
+  //   ssd1306_lcd.set_block(x, y, w);
+  //   for(j=(h >> 3); j>0; j--)
+  //   {
+  //       for(i=w;i>0;i--)
+  //       {
+  //           ssd1306_lcd.send_pixels1(s_ssd1306_invertByte^pgm_read_byte(buf++));
+  //       }
+  //       buf += remainder;
+  //       ssd1306_lcd.next_page();
+  //   }
+  //   ssd1306_intf.stop();
+}
+
+void draw_menu()
+{
+  // ssd1306_drawRect(20, 20, 108, 16);
+  // ssd1306_printFixed(21, 21, "MENU OPTION", STYLE_NORMAL);
+  
+  ssd1306_setColor(0);
+  ssd1306_fillRect(0, 56, 128, 64);
+  ssd1306_negativeMode();
+  ssd1306_printFixed(8, 56, "MENU:", STYLE_NORMAL);
+  ssd1306_positiveMode();
+  ssd1306_printFixed(46, 56, "FEED", STYLE_NORMAL);
+}
 
 void loop()
 {
+  if (pinInterrupt || firstBoot)
+  {
+    interrupts();
+    firstBoot = false;
+    // game loop, exits when inactive for x amount of time
+    enableScreen();
+    splashScreen();
 
+    on_resume();
+    game_loop();
 
-  game.SaveData();
+    // now that I think about it, saving into eeprom really isn't necessary given
+    // that variables are being preserved just fine
+    // still is a nice QOL of thing in case the battery dies
+    game.SaveData();
+    screen_off();
+  }
+
+  if (watchdogInterrupt)
+  {
+    // don't need to do anything special here
+    // already incrementing the sleep counter anyways
+    // this will be applied on next pin interrupt
+  }
+
   watchdogInterrupt = false;
   pinInterrupt = false;
-  timerInterrupt = false;
 
-    ssd1306_displayOff();
-  deepSleep();
-
-  cli();
-  // setup();
-
-  if (pinInterrupt)
-  {
-      ssd1306_128x64_i2c_init();
-        ssd1306_setFixedFont(ssd1306xled_font6x8);
-        ssd1306_clearScreen();
-
-        ssd1306_printFixed(0, 8, "waking up", STYLE_NORMAL);
-      ssd1306_printFixed(0, 16, "PIN INTERRUPT", STYLE_NORMAL);
-      sleepTime();
-      delay(1500);
-  }
-
-  if (timerInterrupt)
-  {
-      updateSleepTime();
-
-      // return;
-
-        // ssd1306_128x64_i2c_init();
-        ssd1306_displayOn();
-        ssd1306_setFixedFont(ssd1306xled_font6x8);
-        ssd1306_clearScreen();
-
-        if (watchdogInterrupt || MCUSR & _BV(WDRF))
-    {
-        ssd1306_printFixed(0, 24, "watchdog!!!!", STYLE_NORMAL);
-    }
-
-        ssd1306_printFixed(0, 8, "TIME", STYLE_NORMAL);
-        char buf[32] = {0};
-    sprintf(buf, "T: %d", interaction_seconds_counter);
-    ssd1306_printFixed(0, 16, buf, STYLE_NORMAL);
-        // ssd1306_clearScreen();
-        // delay(11000);
-        // ssd1306_displayOff();
-
-      // deepSleep();
-  }
-
-  // delay(150000);
-
-  // delay(50000);
+  screen_off();
+  deepSleep(); // pauses here
 }
