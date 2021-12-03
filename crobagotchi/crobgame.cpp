@@ -9,10 +9,12 @@ void CrobGame::StartNewGame()
 {
     this->crob = Crob();
     this->crob.age = 1;
-    this->crob.happy = 2;
-    this->crob.health = 3;
+    this->crob.happy = 200;
+    this->crob.health = 200;
+    // this->crob.name = get_name().;
     // char n[32] = "test";
     // this->crob.name = n;
+    strcpy(this->crob.name, get_name().c_str());
 }
 
 bool CrobGame::LoadData()
@@ -59,9 +61,11 @@ CrobGame::CrobGame()
 Crob::Crob()
 {
     // char n[32] = "name";
-    this->name;
+    // this->name;
     memset(this->name, 0, 32);
-    strcpy(this->name, get_name());
+    strcpy(this->name, get_name().c_str());
+
+    // this->name = get_name().c_str();
 
 // #define NAME_OVERRIDE "crobby boi"
 #ifdef NAME_OVERRIDE
@@ -73,7 +77,8 @@ Crob::Crob()
     this->age = 0;
     // this->network_bonus_timer = 0;
     // this->last_update_time = 0;
-    this->sleepCycles = 0;
+    // this->sleepCycles = 0;
+    this->isSleeping = false;
 }
 
 // void Crob::Update(ulong current_time)// maybe do a typedef for the system time if I'm wrong about what the rtc does
@@ -124,21 +129,23 @@ void Crob::SaveStatus(uint8_t *buffer)
 {
     uint8_t chksum = 0;
 
-    // for (auto i = 0; i < NAME_LEN; i++)
-    // {
-    //     buffer[i] = this->name[i];
-    //     chksum += buffer[i];
-    // }
+    for (auto i = 0; i < NAME_LEN; i++)
+    {
+        buffer[i] = this->name[i];
+        chksum += buffer[i];
+    }
 
     buffer[33] = this->health;
     buffer[34] = this->happy;
     buffer[35] = this->age;
-    buffer[36] = this->sleepCycles;
+    // buffer[36] = this->sleepCycles;
 
     chksum += this->health;
     chksum += this->happy;
     chksum += this->age;
-    chksum += this->sleepCycles;
+    // chksum += this->sleepCycles;
+
+    chksum %= 255;
 
     // prevent values of 0 that look unset
     if (chksum == 0)
@@ -162,21 +169,50 @@ bool Crob::LoadStatus(uint8_t *buffer)
 
     uint8_t actualSum = 0;
 
-    // for (auto i = 0; i < NAME_LEN; i++)
-    // {
-    //     this->name[i] = buffer[i];
-    //     actualSum += buffer[i];
-    // }
+    for (auto i = 0; i < NAME_LEN; i++)
+    {
+        this->name[i] = buffer[i];
+        actualSum += buffer[i];
+    }
 
     this->health = buffer[33];
     this->happy = buffer[34];
     this->age = buffer[35];
-    this->sleepCycles = buffer[36];
+    // this->sleepCycles = buffer[36];
 
     actualSum += this->health;
     actualSum += this->happy;
     actualSum += this->age;
-    actualSum += this->sleepCycles;
+    // actualSum += this->sleepCycles;
+
+    actualSum %= 255;
 
     return chksum == actualSum;
+}
+
+Status Crob::GetStatus()
+{
+    // if (sleepCycles > SLEEPING_IDLE_CYCLES)
+    // if (isSleeping)
+    // {
+    //     return Status::Sleeping;
+    // }
+    if (happy > 200)
+    {
+        return Status::Happy;
+    }
+    if (health < 100)
+    {
+        return Status::Hungry;
+    }
+    if (happy > 100 && health > 100)
+    {
+        return Status::Sad;
+    }
+    if (health == 0)
+    {
+        return Status::Dead;
+    }
+
+    return Status::Normal;
 }

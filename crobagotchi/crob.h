@@ -13,6 +13,8 @@ typedef unsigned long ulong;
 #define SAVEDATA_LEN 40
 #define NAME_LEN 32
 
+#define SLEEPING_IDLE_CYCLES 50
+
 // represents the players pet
 class Crob
 {
@@ -42,7 +44,8 @@ class Crob
         // this represents the number of sleep cycles since the time
         // the device was last interrupted by a pin change
         // if the device is interrupted by sleep, then increment this value up to 255
-        uint8_t sleepCycles;
+        // uint8_t sleepCycles;
+        bool isSleeping = false;
 
         Crob();
 
