@@ -25,11 +25,26 @@ class Crob
         // the delta time between last_update_time and current determines
         // how these values will degrade
         // 0 = dead, 255 = max
-        uint8_t health;
-        uint8_t happy;
+        int16_t health; // HACK clamp these to bytes but use a signed 16 because I AM LAZY
+        int16_t happy;
+
+        void setHealth(int16_t health)
+        {
+            this->health = clamp(health);
+        }
+
+        void setHappy(int16_t happy)
+        {
+            this->happy = clamp(happy);
+        }
+
+        int16_t clamp(int16_t v)
+        {
+            return v < 0 ? 0 : (v > 255 ? 255 : v);
+        }
 
         // 1 per 6 hours?
-        uint8_t age;
+        uint8_t age; // this is fine tho
 
         // these should exist under crob because they will be part of the buffer
 
@@ -69,6 +84,8 @@ class Crob
 
         // loads status from a buffer
         bool LoadStatus(uint8_t *buffer);
+
+        bool getIsDead() { return health == 0; }
 };
 
 // g++ *.cpp `pkg-config --cflags --libs glib-2.0 gtkmm-3.0`

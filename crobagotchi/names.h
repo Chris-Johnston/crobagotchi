@@ -18,20 +18,31 @@
 
 String get_name()
 {
-    srandom(millis());
+    // srandom(millis());
     auto idx = random(NAMES_LEN);
     switch (idx)
     {
-        case 0: return F("Crob");
-        case 1: return F("Crobert");
-    case 2: return F("Thundercrob");
+    // case 0: return F("Crob");
+    // case 1: return F("Crobert");
+    // case 2: return F("Thundercrob");
+    // case 3: return F("CAWW");
+    // case 4: return F("Mr. Peanuts");
+    // case 5: return F("Ms. Shiny");
+    // case 6: return F("Pecky");
+    // case 7: return F("GIGA CROB");
+    // case 8: return F("CROBOT");
+    // case 9: return F("Geeb");
+
+    case 0: return F("CROB");
+    case 1: return F("CROBERT");
+    case 2: return F("THUNDERCROB");
     case 3: return F("CAWW");
-    case 4: return F("Mr. Peanuts");
-    case 5: return F("Ms. Shiny");
-    case 6: return F("Pecky");
+    case 4: return F("MR. PEANUTS");
+    case 5: return F("MS. SHINY");
+    case 6: return F("PECKY");
     case 7: return F("GIGA CROB");
     case 8: return F("CROBOT");
-    case 9: return F("Geeb");
+    case 9: return F("CROW");
     }
     
     // return crow_names[idx];

@@ -62,7 +62,7 @@ Crob::Crob()
 {
     // char n[32] = "name";
     // this->name;
-    memset(this->name, 0, 32);
+    // memset(this->name, 0, 32);
     strcpy(this->name, get_name().c_str());
 
     // this->name = get_name().c_str();
@@ -192,6 +192,10 @@ bool Crob::LoadStatus(uint8_t *buffer)
 
 Status Crob::GetStatus()
 {
+    if (this->getIsDead())
+    {
+        return Status::Dead;
+    }
     // if (sleepCycles > SLEEPING_IDLE_CYCLES)
     // if (isSleeping)
     // {
@@ -205,14 +209,14 @@ Status Crob::GetStatus()
     {
         return Status::Hungry;
     }
-    if (happy > 100 && health > 100)
+    if (happy < 100)
     {
         return Status::Sad;
     }
-    if (health == 0)
-    {
-        return Status::Dead;
-    }
+    // if (health == 0)
+    // {
+    //     return Status::Dead;
+    // }
 
     return Status::Normal;
 }
