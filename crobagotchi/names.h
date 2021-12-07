@@ -14,11 +14,11 @@
 // extern const char name9[] PROGMEM = "CROBOT";
 // extern const char name10[] PROGMEM = "Geeb";
 
-#define NAMES_LEN 9
+#define NAMES_LEN 8
 
 String get_name()
 {
-    // srandom(millis());
+    srandom(millis());
     auto idx = random(NAMES_LEN);
     switch (idx)
     {
@@ -33,16 +33,27 @@ String get_name()
     // case 8: return F("CROBOT");
     // case 9: return F("Geeb");
 
+    // case 0: return F("CROB");
+    // case 1: return F("CROBERT");
+    // case 2: return F("THUNDERCROB");
+    // case 3: return F("CAWW");
+    // case 4: return F("MR. PEANUTS");
+    // case 5: return F("MS. SHINY");
+    // case 6: return F("PECKY");
+    // case 7: return F("GIGA CROB");
+    // case 8: return F("CROBOT");
+    // case 9: return F("CROW");
+
     case 0: return F("CROB");
-    case 1: return F("CROBERT");
-    case 2: return F("THUNDERCROB");
-    case 3: return F("CAWW");
-    case 4: return F("MR. PEANUTS");
-    case 5: return F("MS. SHINY");
-    case 6: return F("PECKY");
-    case 7: return F("GIGA CROB");
+    case 1: return F("EVIL BEAK");
+    case 2: return F("FRANKLIN");
+    case 3: return F("CORVO");
+    // case 4: return F("BEAKINGTON"); // ask for shorter name
+    case 4: return F("CROBBI");
+    case 5: return F("CAWW"); // CAWWs and Effect too long? shorter name.
+    case 6: return F("CROBERT");
+    case 7: return F("CROWBAR");
     case 8: return F("CROBOT");
-    case 9: return F("CROW");
     }
     
     // return crow_names[idx];

@@ -3,5 +3,6 @@
     "configuration": "cpu=attiny85,clock=internal1",
     "sketch": "crobagotchi/crobagotchi.ino",
     "port": "/dev/ttyS4",
-    "programmer": "USBasp"
+    "programmer": "USBasp",
+    "output": "out"
 }

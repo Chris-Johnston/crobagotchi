@@ -63,7 +63,7 @@ Crob::Crob()
     // char n[32] = "name";
     // this->name;
     // memset(this->name, 0, 32);
-    strcpy(this->name, get_name().c_str());
+    strcpy(this->name, get_name().c_str()); // question for later, can I just use a pointer
 
     // this->name = get_name().c_str();
 

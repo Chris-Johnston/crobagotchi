@@ -71,24 +71,32 @@ ISR(WDT_vect)
 
 ISR(PCINT0_vect)
 {
-  wdt_reset();
   pinInterrupt = true;
 }
 
 void handle_watchdog_interrupt()
 {
+#ifdef DEBUG_WD
   if (MCUSR & _BV(WDRF)) // MCU Status Register, Watchdog Reset Flag
   {
-#ifdef DEBUG_WD
     // // ssd1306_128x64_i2c_init();
     // // question: does changing contrast impact the power draw?
     // ssd1306_setContrast(255);
     // ssd1306_setFixedFont(ssd1306xled_font6x8);
     // ssd1306_clearScreen();
     // ssd1306_printFixed(0, 24, "WATCH DOG", STYLE_NORMAL);
-#endif
-    MCUSR = 0;
+    // MCUSR = 0;
   }
+#endif
+}
+
+void clear_interrupt()
+{
+  // disable pin change
+  GIMSK = 0; // General Interrupt Mask Register
+
+  // do not have to clear the watchdog interrupts, because it should operate silently
+  // and should reset in case of crash as well
 }
 
 void setup()
@@ -100,45 +108,42 @@ void setup()
   digitalWrite(0, LOW);
   delay(50);
 #endif
-  // clear interrupts
-  GIMSK = 0; // General Interrupt Mask Register
-  PCMSK = 0; // Pin Change Mask Register
-  cli();
+#ifdef DEBUG_WD
   handle_watchdog_interrupt();
+#endif
 
   // we do not use ADC ever
   ADCSRA = 0; // ADC Control Status Register A (reg B does not have an enable bit)
   pinMode(BUTTON_A, INPUT_PULLUP);
   pinMode(BUTTON_B, INPUT_PULLUP); // pb2 pb1
 
-  if (watchdogInterrupt) // watchdog interrupt will reset
-  {
-#ifdef DEBUG_WD
-    enableScreen();
-    oled.setCursor(0, 0);
-    oled.println("WD in setup()");
-    oled.println((int)interaction_seconds_counter);
-    delay(200);
-#endif
+  // unreachable code
+  //   if (watchdogInterrupt) // watchdog interrupt will reset
+  //   {
+  // #ifdef DEBUG_WD
+  //     enableScreen();
+  //     oled.setCursor(0, 0);
+  //     oled.println("WD in setup()");
+  //     oled.println((int)interaction_seconds_counter);
+  //     delay(200);
+  // #endif
 
-#ifdef DEBUG_LED
-    digitalWrite(0, 1);
-    delay(5);
-    digitalWrite(0, LOW);
-    delay(1000);
-    digitalWrite(0, 1);
-    delay(5);
-    digitalWrite(0, LOW);
-    delay(1000);
-#endif
-    deepSleep();
-  }
+  // #ifdef DEBUG_LED
+  //     digitalWrite(0, 1);
+  //     delay(5);
+  //     digitalWrite(0, LOW);
+  //     delay(1000);
+  //     digitalWrite(0, 1);
+  //     delay(5);
+  //     digitalWrite(0, LOW);
+  //     delay(1000);
+  // #endif
+  //     deepSleep();
+  //   }
 
   pinInterrupt = false;
   watchdogInterrupt = false;
   interaction_seconds_counter = 0;
-
-  sei();
 
 #ifdef DEBUG_SCREEN
   enableScreen();
@@ -160,8 +165,7 @@ void setup()
   {
     enableScreen();
     oled.println(F("BAT"));
-    delay(1000);
-    MCUSR = 0;
+    delay(255);
   }
 }
 
@@ -190,15 +194,15 @@ void deepSleep()
 
   // enable pin change interrupts
   GIMSK |= (1 << PCIE);
-  PCMSK |= (1 << PCINT2);
-  PCMSK |= (1 << PCINT1);
+  PCMSK |= (1 << PCINT2) | (1 << PCINT1);
 
   // watchdog timer
-  wdt_reset(); // probably have some redundant calls in here
-  MCUSR = 0;
+  // WDCE = Change enable
+  // WDE = Enable WD
+  // WDIE = Watchdog timeout interrupt enable (cleared each time)
   WDTCR = _BV(WDCE) | _BV(WDE) | _BV(WDIE) | _BV(WDP3) | _BV(WDP0); // 8 sec
 
-  wdt_reset();
+  // wdt_reset(); // not necessary here
   interrupts();
 
   // sleeps here
@@ -207,7 +211,6 @@ void deepSleep()
 
 void splashScreen()
 {
-  draw_fry();
 #ifdef OLDSPLASH
   // skip
   for (int i = 0; i < 4; i += 1)
@@ -291,17 +294,17 @@ void initData()
 }
 
 // 1 hour
-#define SLEEP_THRESH 450 // (60 * 60 / 8)
+#define SLEEP_THRESH (60 * 60 / 8)
 // #define SLEEP_THRESH 2 // testing
 
 // age increases every 120 min
-#define AGE_THRESH 900 // (120 * 60 / 8)
+#define AGE_THRESH (120 * 60 / 8)
 // #define AGE_THRESH 2
 
-// happy decays every 5 min
-#define HAPPY_DECAY 38 // (5 * 60 / 8)
-// food decay 3 min
-#define FEED_DECAY 23 // (3 * 60 / 8)
+// happy should decay by 75 every day
+#define HAPPY_DECAY 144
+// food should decay by 100 every day
+#define FEED_DECAY 108
 
 void on_resume()
 {
@@ -320,24 +323,26 @@ void on_resume()
     game.crob.isSleeping = interaction_seconds_counter > SLEEP_THRESH;
 
     // game.crob.health = game.crob.health - (interaction_seconds_counter / FEED_DECAY);
-    game.crob.setHealth(game.crob.health - (interaction_seconds_counter / FEED_DECAY));
+    game.crob.setHealth(game.crob.health - interaction_seconds_counter / FEED_DECAY);
 
     // game.crob.happy = game.crob.happy - (interaction_seconds_counter / HAPPY_DECAY);
-    game.crob.setHappy(game.crob.happy - (interaction_seconds_counter / HAPPY_DECAY));
+    game.crob.setHappy(game.crob.happy - interaction_seconds_counter / HAPPY_DECAY);
 
     // allow overflow, that's funny
     game.crob.age += interaction_seconds_counter / AGE_THRESH;
   }
 }
 
-#define IDLE_TIME 15 * 1000
-#define DEBOUNCE_TIME 30
-#define MENU_DEBOUNCE 666
+#define IDLE_TIME (15 * 1000)
+#define DEBOUNCE_TIME (30)
+#define MENU_DEBOUNCE (500)
 
 unsigned long last_debounce_a = 0;
 unsigned long last_debounce_b = 0;
+unsigned long menu_debounce = 0;
 bool last_state_a = false;
 bool last_state_b = false;
+bool last_menu = false;
 
 // 0 closed
 // 1 - feed
@@ -406,17 +411,12 @@ void reset_seq()
 void draw_fry()
 {
   // fill the screen
+
+  // without loops this uses way more
   for (int x = 0; x < 120; x += 24)
     for (int y = 0; y < 64; y += 32)
       oled.bitmap(x, y / 8, x + 24, y / 8 + 3, epd_bitmap_fry);
 
-  for (int x = 0; x < 128; x += 1)
-  {
-    // oled.scrollContentRight(0, 8, 0, 128);
-    oled.setVerticalScrollArea(0, 8);
-    oled.scrollLeftOffset(0, 1, 2, 1);
-    oled.activateScroll();
-  }
   delay(3000);
 }
 
@@ -432,6 +432,25 @@ void feed_seq()
   game.crob.isSleeping = false;
   // game.crob.health = min(255, game.crob.health + 50);
   game.crob.setHealth(game.crob.health + 50);
+}
+
+void play_seq()
+{
+  // play seq
+        oled.clear();
+        // I only have like, 70 bytes left
+        oled.bitmap(0, 0, 48, 6, epd_bitmap_test);
+        delay(300);
+        oled.clear();
+        oled.bitmap(40, 2, 88, 8, epd_bitmap_test);
+        delay(300);
+        oled.clear();
+        oled.bitmap(80, 0, 128, 6, epd_bitmap_test);
+        delay(300);
+
+        game.crob.isSleeping = false;
+        // game.crob.happy = min(255, game.crob.happy + 50);
+        game.crob.setHappy(game.crob.happy + 50);
 }
 
 void game_loop() // naming consistency, what's that?
@@ -485,6 +504,7 @@ void game_loop() // naming consistency, what's that?
     else if (a && b && reset_hold_time != 0)
     {
       reset_seq();
+      last_interaction_time = millis();
       continue;
     }
     else
@@ -492,19 +512,33 @@ void game_loop() // naming consistency, what's that?
       reset_hold_time = 0;
     }
 
-    // move through menu
-    if (b && !a)
+    bool menu = b && !a;
+    // debounce the menu
+    if ((millis() - menu_debounce) < MENU_DEBOUNCE)
     {
-      last_debounce_b = millis() + MENU_DEBOUNCE;
-      needsredraw = true;
-      menu_option += 1;
-      menu_option %= 3;
+      menu = false;
+    }
+    
+    // move through menu
+    else if (menu)
+    {
 
-      if (game.crob.getIsDead())
+      if (!game.crob.getIsDead())
+      {
+        needsredraw = true;
+        menu_option += 1;
+        menu_option %= 3;
+      }
+      else
       {
         menu_option = 0;
       }
+
+      menu_debounce = millis();
     }
+
+    last_menu = menu;
+
 
     if (needsredraw)
     {
@@ -534,38 +568,21 @@ void game_loop() // naming consistency, what's that?
 
     if (a && !b)
     {
-      if (menu_option == 1)
+      if (menu_option == 0)
+      {
+        continue;
+      }
+      else if (menu_option == 1)
       {
         feed_seq();
-
-        draw_main_menu();
-        menu_option = 0;
       }
-
-      if (menu_option == 2)
+      else if (menu_option == 2)
       {
-        oled.clear();
-        // oled.println(F("PLAY SEQ"));
-        // delay(3000);
-
-        // I only have like, 70 bytes left
-        oled.bitmap(0, 0, 48, 6, epd_bitmap_test);
-        oled.clear();
-        oled.bitmap(40, 2, 88, 8, epd_bitmap_test);
-        oled.clear();
-        oled.bitmap(80, 0, 128, 6, epd_bitmap_test);
-
-        game.crob.isSleeping = false;
-        // game.crob.happy = min(255, game.crob.happy + 50);
-        game.crob.setHappy(game.crob.happy + 50);
-
-        draw_main_menu();
-        menu_option = 0;
+        play_seq();
       }
 
-      // last_debounce_a = millis() + MENU_DEBOUNCE;
-
-      continue;
+      draw_main_menu();
+      menu_option = 0;
     }
 
     // oled.setCursor(0, 0);
@@ -614,28 +631,28 @@ void draw_main_menu()
   if (!game.crob.getIsDead())
   {
     oled.bitmap(40, 1, 88, 56 / 8, epd_bitmap_test);
-  } 
+
+    if (game.crob.isSleeping || game.crob.GetStatus() == Status::Happy)
+    {
+      auto z = F("Z");
+      if (game.crob.GetStatus() == Status::Happy)
+      {
+        z = F("^");
+      }
+      oled.setCursor(90, 4);
+      oled.print(z);
+
+      oled.setCursor(95, 3);
+      oled.print(z);
+
+      oled.setCursor(100, 2);
+      oled.print(z);
+    }
+  }
   else
   {
     oled.setCursor(58, 3);
     oled.print(F("RIP"));
-  }
-
-  if (game.crob.isSleeping || game.crob.GetStatus() == Status::Happy)
-  {
-    auto z = F("Z");
-    if (game.crob.GetStatus() == Status::Happy)
-    {
-      z = F("^");
-    }
-    oled.setCursor(90, 4);
-    oled.print(z);
-
-    oled.setCursor(95, 3);
-    oled.print(z);
-
-    oled.setCursor(100, 2);
-    oled.print(z);
   }
 
   // delay(1000);
@@ -688,26 +705,6 @@ void draw_status()
   }
 }
 
-void drawBitMapIntScale(int x, int y, int scale, int w, int h, const uint8_t *buf)
-{
-  // ssd1306_write
-
-  // uint8_t i, j;
-  //   uint8_t remainder = (ssd1306_lcd.width - x) < w ? (w + x - ssd1306_lcd.width): 0;
-  //   w -= remainder;
-  //   ssd1306_lcd.set_block(x, y, w);
-  //   for(j=(h >> 3); j>0; j--)
-  //   {
-  //       for(i=w;i>0;i--)
-  //       {
-  //           ssd1306_lcd.send_pixels1(s_ssd1306_invertByte^pgm_read_byte(buf++));
-  //       }
-  //       buf += remainder;
-  //       ssd1306_lcd.next_page();
-  //   }
-  //   ssd1306_intf.stop();
-}
-
 // void draw_menu(int cursorIdx)
 // {
 //   oled.setCursor(8, 1);
@@ -736,38 +733,42 @@ void loop()
 {
   if (pinInterrupt || firstBoot)
   {
-    interrupts();
+    if (firstBoot)
+    {
+      splashScreen();
+    }
+
+    clear_interrupt();
     firstBoot = false;
     // game loop, exits when inactive for x amount of time
     enableScreen();
     splashScreen();
 
     on_resume();
-    game_loop();
 
     // now that I think about it, saving into eeprom really isn't necessary given
     // that variables are being preserved just fine
-    // still is a nice QOL of thing in case the battery dies
+    // still is a nice QOL of thing in case the battery dies or if it crashes
     game.SaveData();
-    screen_off();
+
+    game_loop();
 
     interaction_seconds_counter = 0;
   }
 
+#ifdef DEBUG_WD
   if (watchdogInterrupt)
   {
     // don't need to do anything special here
     // already incrementing the sleep counter anyways
     // this will be applied on next pin interrupt
-
-#ifdef DEBUG_WD
     enableScreen();
     oled.setCursor(0, 0);
     oled.println("WD in loop()");
     oled.println((int)interaction_seconds_counter);
     delay(200);
-#endif
   }
+#endif
 
   watchdogInterrupt = false;
   pinInterrupt = false;

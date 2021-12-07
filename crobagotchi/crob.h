@@ -1,7 +1,5 @@
 #pragma once
 
-typedef unsigned long ulong;
-// typedef unsigned byte uint8_t;
 #include "stdint.h"
 
 #include "status.h"
@@ -19,7 +17,7 @@ typedef unsigned long ulong;
 class Crob
 {
     public:
-        char name[NAME_LEN] = {0};
+        char name[NAME_LEN] = {0}; // TODO look into just using an index for name or pointer
         // char name*;
         // these are calculated values each time update is called
         // the delta time between last_update_time and current determines
