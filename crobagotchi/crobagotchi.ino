@@ -68,12 +68,15 @@ ISR(WDT_vect)
   wdt_reset();
   watchdogInterrupt = true;
   pinInterrupt = false;
+  firstBoot = false;
   interaction_seconds_counter++;
 }
 
 ISR(PCINT0_vect)
 {
   pinInterrupt = true;
+  watchdogInterrupt = false;
+  firstBoot = false;
 }
 
 EMPTY_INTERRUPT(ADC_vect);
@@ -247,10 +250,10 @@ void deepSleep()
   WDTCR = _BV(WDCE) | _BV(WDE) | _BV(WDIE) | _BV(WDP3) | _BV(WDP0); // 8 sec
 
 
-power_adc_disable();
-power_timer0_disable();
-power_timer1_disable();
-power_usi_disable();
+// power_adc_disable();
+// power_timer0_disable();
+// power_timer1_disable();
+// power_usi_disable();
 power_all_disable();
   // clear pin interrupts
 
@@ -423,7 +426,7 @@ void reset_seq()
   if ((millis() - reset_hold_time) > RESET_HOLD)
   {
     oled.clear();
-    oled.println(F("WARNING!"));
+    // oled.println(F("WARNING!"));
     oled.println(F("HOLD A TO RESET"));
 
     auto timer = millis();
@@ -745,7 +748,7 @@ void draw_status()
 {
   // clear_bot_line();
   // oled.print("HUNGRY, DIRTY");
-  oled.print(F("STATUS: "));
+  // oled.print(F("STATUS: "));
 
   switch (game.crob.GetStatus())
   {
