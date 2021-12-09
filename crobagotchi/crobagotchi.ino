@@ -17,6 +17,7 @@
 #include <avr/io.h>
 #include <avr/sleep.h>
 #include <avr/wdt.h>
+#include <avr/power.h>
 
 CrobGame game;
 
@@ -66,6 +67,7 @@ ISR(WDT_vect)
 {
   wdt_reset();
   watchdogInterrupt = true;
+  pinInterrupt = false;
   interaction_seconds_counter++;
 }
 
@@ -73,6 +75,23 @@ ISR(PCINT0_vect)
 {
   pinInterrupt = true;
 }
+
+EMPTY_INTERRUPT(ADC_vect);
+EMPTY_INTERRUPT(ANA_COMP_vect);
+EMPTY_INTERRUPT(EE_RDY_vect);
+EMPTY_INTERRUPT(INT0_vect);
+EMPTY_INTERRUPT(TIM0_COMPA_vect);
+EMPTY_INTERRUPT(TIM1_COMPA_vect);
+EMPTY_INTERRUPT(TIM1_OVF_vect);
+EMPTY_INTERRUPT(USI_OVF_vect);
+EMPTY_INTERRUPT(USI_START_vect);
+EMPTY_INTERRUPT(BADISR_vect);
+
+
+// ISR(BADISR_vect)
+// {
+//   firstBoot = false;
+// }>
 
 void handle_watchdog_interrupt()
 {
@@ -92,11 +111,24 @@ void handle_watchdog_interrupt()
 
 void clear_interrupt()
 {
+  cli();
   // disable pin change
   GIMSK = 0; // General Interrupt Mask Register
 
+  // clear the interrupt flag Register
+  GIFR = 0;
+
   // do not have to clear the watchdog interrupts, because it should operate silently
   // and should reset in case of crash as well
+  // I think this is casuing crashes after it goes to sleep and comes back
+
+  // disable all WD stuff
+    // WDTCR = _BV(WDCE) | _BV(WDE);
+    wdt_reset();
+    WDTCR |= _BV(WDCE); //  | _BV(WDE);
+    WDTCR = 0;
+
+    sei();
 }
 
 void setup()
@@ -114,6 +146,7 @@ void setup()
 
   // we do not use ADC ever
   ADCSRA = 0; // ADC Control Status Register A (reg B does not have an enable bit)
+  PRR &= 0b1110; // disable ADC
   pinMode(BUTTON_A, INPUT_PULLUP);
   pinMode(BUTTON_B, INPUT_PULLUP); // pb2 pb1
 
@@ -161,12 +194,20 @@ void setup()
 
   // this added 38 bytes, ouch!
   // 8k of flash is HARD
-  if (MCUSR & _BV(BORF)) // brown out reset flag
+  // if (MCUSR & _BV(BORF)) // brown out reset flag
+  // {
+  //   enableScreen();
+  //   oled.println(F("BAT"));
+  //   delay(255);
+  // }
+
+  if (MCUSR)
   {
     enableScreen();
-    oled.println(F("BAT"));
-    delay(255);
+    oled.println(MCUSR);
   }
+
+  MCUSR = 0;
 }
 
 void screen_off()
@@ -192,21 +233,43 @@ void deepSleep()
 
   noInterrupts();
 
+  GIFR = 0;
+
   // enable pin change interrupts
-  GIMSK |= (1 << PCIE);
+  GIMSK = (1 << PCIE);
   PCMSK |= (1 << PCINT2) | (1 << PCINT1);
 
   // watchdog timer
   // WDCE = Change enable
   // WDE = Enable WD
   // WDIE = Watchdog timeout interrupt enable (cleared each time)
+  wdt_reset();
   WDTCR = _BV(WDCE) | _BV(WDE) | _BV(WDIE) | _BV(WDP3) | _BV(WDP0); // 8 sec
+
+
+power_adc_disable();
+power_timer0_disable();
+power_timer1_disable();
+power_usi_disable();
+power_all_disable();
+  // clear pin interrupts
 
   // wdt_reset(); // not necessary here
   interrupts();
 
+
+  // this fixes the screen going away and immediately coming back
+  // I think re-enabling interrupts immediately calls one of the ISRs
+  watchdogInterrupt = false;
+  pinInterrupt = false;
+
   // sleeps here
   sleep_cpu();
+  sleep_disable();
+
+  power_timer0_enable();
+
+  // wake up
 }
 
 void splashScreen()
@@ -431,7 +494,7 @@ void feed_seq()
 
   game.crob.isSleeping = false;
   // game.crob.health = min(255, game.crob.health + 50);
-  game.crob.setHealth(game.crob.health + 50);
+  game.crob.setHealth(game.crob.health + 120);
 }
 
 void play_seq()
@@ -450,7 +513,7 @@ void play_seq()
 
         game.crob.isSleeping = false;
         // game.crob.happy = min(255, game.crob.happy + 50);
-        game.crob.setHappy(game.crob.happy + 50);
+        game.crob.setHappy(game.crob.happy + 120);
 }
 
 void game_loop() // naming consistency, what's that?
@@ -733,15 +796,15 @@ void loop()
 {
   if (pinInterrupt || firstBoot)
   {
+    clear_interrupt();
+    enableScreen();
     if (firstBoot)
     {
       splashScreen();
     }
 
-    clear_interrupt();
     firstBoot = false;
     // game loop, exits when inactive for x amount of time
-    enableScreen();
     splashScreen();
 
     on_resume();
@@ -769,9 +832,6 @@ void loop()
     delay(200);
   }
 #endif
-
-  watchdogInterrupt = false;
-  pinInterrupt = false;
 
   screen_off();
   deepSleep(); // pauses here
