@@ -14,7 +14,7 @@
 // extern const char name9[] PROGMEM = "CROBOT";
 // extern const char name10[] PROGMEM = "Geeb";
 
-#define NAMES_LEN 9
+#define NAMES_LEN 10
 
 String get_name()
 {
@@ -54,6 +54,7 @@ String get_name()
     case 5: return F("CAWW"); // CAWWs and Effect too long? shorter name.
     case 6: return F("CROBERT");
     case 7: return F("CROWBAR");
+    case 10: return F("MR.&RESIDENT");
     default:
     case 8: return F("CROBOT");
     }
