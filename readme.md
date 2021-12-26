@@ -2,11 +2,13 @@
 
 Raise your own _virtual_ crow!
 
-<!-- TODO add image here -->
+![Image of the assembled board.](images/crobagotchi.jpg)
 
 ## What?
 
 ![Image](sprites/judgement%20dithered.bmp)
+
+![Back image of the board.](images/board_rear.jpg)
 
 _Crobagotchi_ combines [Tamagotchi] with the [Crow of Judgement] (also referred to as a "Crob").
 
@@ -51,9 +53,60 @@ Turns out there was more than one modification I'd make to this library. It incl
 which was great, but there were characters that I didn't use. Because of this, I modified
 this font to add extra symbols that I'd use elsewhere, without having to add more to the flash.
 
-## Pictures
+## Pictures / Assembly Instructions
 
-<!-- todo -->
+Here's the board fully assembled:
+
+![Fully assembled crobagotchi.](images/assembled.jpg)
+
+Mind the flux and stray bits of q-tip used to clean it up.
+
+1. First, unless already soldered, solder the ATTiny85 to the board.
+To do this, I like to start by tinning pin 1, placing the IC in the right spot,
+and sticking the IC in place. Then, doing the rest of the pins isn't much extra effort. Any extra solder can be removed with solder wick.
+
+    ![Image of the attiny85 footprint](images/attiny_footprint.jpg)
+
+    ![Image of the soldered attiny85](images/attiny.jpg)
+
+2. Then solder the surface mount components.
+
+    | Label | Value |
+    | -- | -- |
+    | C1 | 0.1 uF 1206 Capacitor |
+    | R1 | 10k 1206 Resistor |
+    | R2, R3 | 4.7k 1206 Resistor |
+
+    I use a similar method, where I tin one side, place the part, solder that side down, and then solder the remaining side.
+
+    ![Assembled surface mount parts](images/assembled_components.jpg)
+
+3. Then, install the 6mm push buttons. These are straightforward.
+
+4. Install the battery holder. The square side is the positive terminal on the battery holders I used. **This must go on before the display!**
+
+    ![Image of the battery holder on the back.](images/assembled_rear.jpg)
+
+    Be sure to clip the longer (and very sharp) pins of the battery holder.
+
+    Before installing the display, I added some electrical tape to cover the battery contacts. This is so that it doesn't accidentally touch the display.
+
+5. Install the display. There is some gap between the board and the display, and so I tilt the display a bit.
+
+    ![Image of the display.](images/assembled_side.jpg)
+
+6. Finally, I used rubbing alcohol and q-tips to help clean up some of the flux.
+
+7. To program the board, if it isn't already, I used a typical 6 pin USB AVR programmer **running at 3.3 volts**. While the ATTiny85 can run at 5v, the screen cannot.
+
+    Because I didn't want pins sticking up the entire time, I could jam the pins at
+    an angle to help a bit.
+
+    ![Image of programming the board.](images/programming.jpg)
+
+8. Finally I could stick the battery in.
+
+    ![Image of the back of the board.](images/assembled_rear2.jpg)
 
 [Tamagotchi]: https://en.wikipedia.org/wiki/Tamagotchi
 [Crow of Judgement]: https://knowyourmeme.com/memes/crow-of-judgement
