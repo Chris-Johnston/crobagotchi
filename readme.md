@@ -97,10 +97,17 @@ and sticking the IC in place. Then, doing the rest of the pins isn't much extra 
 
 6. Finally, I used rubbing alcohol and q-tips to help clean up some of the flux.
 
-7. To program the board, if it isn't already, I used a typical 6 pin USB AVR programmer **running at 3.3 volts**. While the ATTiny85 can run at 5v, the screen cannot.
+7. To program the board, if it isn't already, I used a typical 6 pin USB AVR programmer **running at 3.3 volts**. While the ATTiny85 can run at 5v, the screen cannot. An [Arduino as ISP](https://www.arduino.cc/en/Tutorial/BuiltInExamples/ArduinoISP) can work great too.
 
     Because I didn't want pins sticking up the entire time, I could jam the pins at
     an angle to help a bit.
+
+    When programming you'll need to do a few things:
+      - Install ATTiny85 support via the board manager using https://github.com/damellis/attiny
+      - Set the clock to "Internal 1 MHz" in the board settings
+      - Click "burn bootloader" to set the clock speed
+
+    Then, upload the firmware to the board.
 
     ![Image of programming the board.](images/programming.jpg)
 
@@ -113,3 +120,15 @@ and sticking the IC in place. Then, doing the rest of the pins isn't much extra 
 [svg2mod]: https://github.com/svg2mod/svg2mod
 [image2cpp]: https://javl.github.io/image2cpp/
 [Tiny4kOLED]: https://github.com/datacute/Tiny4kOLED
+
+## Instructions
+
+On first boot, a new Crob will be created with a randomly selected name.
+You'll want to feed and play with it every day using the buttons to wake up
+the device from sleep.
+
+If for any reason you need a new Crob, hold the A + B buttons for a moment until a menu displays. Hold A in that menu, and you'll get a new crow.
+
+If the battery dies all of your progress will be saved in the internal EEPROM.
+The reset jumper on the back (don't solder it!) can be used in case something
+crashes.
