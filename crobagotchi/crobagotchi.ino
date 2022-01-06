@@ -505,13 +505,13 @@ void play_seq()
   // play seq
         oled.clear();
         // I only have like, 70 bytes left
-        oled.bitmap(0, 0, 48, 6, epd_bitmap_test);
+        oled.bitmap(0, 0, 48, 6, CHARACTER_SPRITE);
         delay(300);
         oled.clear();
-        oled.bitmap(40, 2, 88, 8, epd_bitmap_test);
+        oled.bitmap(40, 2, 88, 8, CHARACTER_SPRITE);
         delay(300);
         oled.clear();
-        oled.bitmap(80, 0, 128, 6, epd_bitmap_test);
+        oled.bitmap(80, 0, 128, 6, CHARACTER_SPRITE);
         delay(300);
 
         game.crob.isSleeping = false;
@@ -696,7 +696,7 @@ void draw_main_menu()
   // ssd1306_drawBitmap(40, 8 / 8, 48, 48, epd_bitmap_test);
   if (!game.crob.getIsDead())
   {
-    oled.bitmap(40, 1, 88, 56 / 8, epd_bitmap_test);
+    oled.bitmap(40, 1, 88, 56 / 8, CHARACTER_SPRITE);
 
     if (game.crob.isSleeping || game.crob.GetStatus() == Status::Happy)
     {

@@ -1,7 +1,7 @@
 #pragma ONCE
 #include "Arduino.h"
 
-
+// #define POOBSTER
 // extern const char name1[] PROGMEM = "Crob";
 // extern const char name2[] PROGMEM = "Crobert";
 // extern const char name3[] PROGMEM = "Thundercrob";
@@ -44,16 +44,26 @@ String get_name()
     // case 8: return F("CROBOT");
     // case 9: return F("CROW");
 
+#ifdef POOBSTER
+    case 0: return F("POOB");
+    case 1: return F("POOBSTER");
+    case 2: return F("FRANKLIN");
+    case 3: return F("HELLO");
+    case 4: return F("HI");
+    case 7: return F("POOBY");
+#else
     case 0: return F("CROB");
     case 1: return F("EVIL BEAK");
     case 2: return F("FRANKLIN");
     case 3: return F("CORVO");
+    case 4: return F("CROBBI");
+    case 7: return F("CROWBAR");
+#endif
     case 9: return F("BEAKINGTON"); // ask for shorter name
     // TODO MR.PRESIDENT
-    case 4: return F("CROBBI");
+    
     case 5: return F("CAWW"); // CAWWs and Effect too long? shorter name.
     case 6: return F("CROBERT");
-    case 7: return F("CROWBAR");
     case 10: return F("MR.&RESIDENT");
     default:
     case 8: return F("CROBOT");
